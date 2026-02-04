@@ -60,7 +60,8 @@ a client can make within a given time window.
 
 <hr>
 
-<h2 id="architecture">🏗️ Architecture</h2>
+<h2 id ="architecture">🧩 System Architecture (High Level)</h2>
+<img src="image.png" alt="Rate Limiter Architecture Diagram" width="100%">
 
 <pre>
 Client Request
