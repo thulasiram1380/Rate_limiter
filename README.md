@@ -17,17 +17,14 @@ A production-ready rate limiting API built using Spring Boot, Redis, and the Tok
 
 <h2>📜 Table of Contents</h2>
 <ul>
-    <li><a href="#-project-overview">📌 Project Overview</a></li>
-    <li><a href="#-features">✨ Features</a></li>
-    <li><a href="#-architecture">🏗️ Architecture</a></li>
-    <li><a href="#-api-endpoints">🔗 API Endpoints</a></li>
-    <li><a href="#-rate-limiting-strategy">🧠 Rate Limiting Strategy</a></li>
-    <li><a href="#-configuration">⚙️ Configuration</a></li>
-    <li><a href="#-how-to-run">▶️ How to Run</a></li>
-    <li><a href="#-testing">🧪 Testing</a></li>
-    <li><a href="#-technologies">🛠️ Technologies</a></li>
-    <li><a href="#-audience">🎓 Who Is This For?</a></li>
-    <li><a href="#-future">🚀 Future Enhancements</a></li>
+    <li><a href="#project-overview">📌 Project Overview</a></li>
+    <li><a href="#features">✨ Features</a></li>
+    <li><a href="#architecture">🏗️ Architecture</a></li>
+    <li><a href="#api-endpoints">🔗 API Endpoints</a></li>
+    <li><a href="#rate-limiting-strategy">🧠 Rate Limiting Strategy</a></li>
+    <li><a href="#configuration">⚙️ Configuration</a></li>
+    <li><a href="#testing">🧪 Testing</a></li>
+    <li><a href="#technologies">🛠️ Technologies Used</a></li>
 </ul>
 
 <hr>
@@ -41,13 +38,9 @@ It protects backend APIs from excessive traffic by limiting the number of reques
 a client can make within a given time window.
 </p>
 
-<p>
-The project is designed with <strong>real production considerations</strong> such as:
-</p>
-
 <ul>
     <li>Distributed rate limiting using Redis</li>
-    <li>Non-blocking reactive APIs</li>
+    <li>Non-blocking Spring Boot APIs</li>
     <li>Clear separation between monitoring and enforcement</li>
     <li>Proper HTTP status codes (<code>429 Too Many Requests</code>)</li>
 </ul>
@@ -59,11 +52,10 @@ The project is designed with <strong>real production considerations</strong> suc
 <ul>
     <li>Token Bucket rate limiting algorithm</li>
     <li>Redis-based distributed token storage</li>
-    <li>Configurable capacity and refill rate</li>
+    <li>Configurable request capacity and refill rate</li>
     <li>Per-client rate limiting using client IP</li>
-    <li>Monitoring endpoint for token status</li>
-    <li>Proper error handling with HTTP 429</li>
-    <li>Production-ready architecture</li>
+    <li>Read-only monitoring endpoint</li>
+    <li>HTTP 429 error handling for rate limit violations</li>
 </ul>
 
 <hr>
@@ -77,7 +69,7 @@ Client Request
 Spring Boot Controller
   |
   v
-RateLimiterService (Token Check)
+RateLimiterService
   |
   v
 RedisTokenBucketService
@@ -87,9 +79,9 @@ Redis (Distributed Storage)
 </pre>
 
 <p>
-<strong>Key principle:</strong><br>
-Monitoring endpoints are <em>read-only</em> and do NOT mutate Redis state.
-Only business APIs consume tokens.
+<strong>Design principle:</strong><br>
+Monitoring endpoints are <em>read-only</em> and never mutate Redis state.
+Only rate-limited APIs consume tokens.
 </p>
 
 <hr>
@@ -102,25 +94,133 @@ Only business APIs consume tokens.
 GET /rate-limiter/status
 </pre>
 
-<!-- Continue with all other sections... -->
+<p>
+Returns current token status without consuming tokens.
+</p>
+
+<pre>
+{
+  "status": "UP",
+  "service": "rate-limiting-gateway",
+  "clientId": "0:0:0:0:0:0:0:1",
+  "capacity": 5,
+  "availableTokens": 5
+}
+</pre>
+
+<hr>
+
+<h3>2️⃣ Rate-Limited API</h3>
+
+<pre>
+GET /api/test
+</pre>
+
+<p>
+Consumes one token per request.
+</p>
+
+<p><strong>Success Response</strong></p>
+
+<pre>
+{
+  "status": 200,
+  "message": "Request allowed",
+  "clientId": "0:0:0:0:0:0:0:1"
+}
+</pre>
+
+<p><strong>Error Response</strong></p>
+
+<pre>
+{
+  "status": 429,
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded",
+  "clientId": "0:0:0:0:0:0:0:1"
+}
+</pre>
+
+<hr>
+
+<h2 id="rate-limiting-strategy">🧠 Rate Limiting Strategy</h2>
+
+<ul>
+    <li>Each client has a fixed-size token bucket</li>
+    <li>Each request consumes one token</li>
+    <li>Tokens refill based on configured refill rate</li>
+    <li>Requests are blocked when tokens reach zero</li>
+</ul>
+
+<hr>
 
 <h2 id="configuration">⚙️ Configuration</h2>
-<!-- content -->
 
-<h2 id="how-to-run">▶️ How to Run</h2>
-<!-- content -->
+<p><strong>application.properties</strong></p>
+
+<pre>
+spring.application.name=Rate_Limiter_API
+spring.cloud.gateway.discovery.locator.enabled=true
+
+spring.redis.host=localhost
+spring.redis.port=6379
+spring.redis.timeout=2000
+
+rate-limiter.capacity=5
+rate-limiter.refill-rate=0
+rate-limiter.api-server-url=http://localhost:8081
+rate-limiter.timeout=5000
+</pre>
+
+<p>
+<strong>Note:</strong> Setting <code>refill-rate=0</code> helps demonstrate
+rate limiting behavior clearly by triggering <code>429</code> responses after
+the configured capacity is exhausted.
+</p>
+
+<hr>
 
 <h2 id="testing">🧪 Testing</h2>
-<!-- content -->
+
+<p><strong>Using IntelliJ HTTP Client</strong></p>
+
+<pre>
+{% for i in range(1, 6) %}
+###
+GET http://localhost:8080/api/test
+{% endfor %}
+</pre>
+
+<p>
+After 5 requests, further calls will return <code>429 Too Many Requests</code>.
+</p>
+
+<hr>
 
 <h2 id="technologies">🛠️ Technologies Used</h2>
-<!-- content -->
 
-<h2 id="audience">🎓 Who Is This For?</h2>
-<!-- content -->
+<ul>
+    <li>Java</li>
+    <li>Spring Boot</li>
+    <li>Redis</li>
+    <li>Jedis (Redis client)</li>
+    <li>Token Bucket Algorithm</li>
+    <li>Maven</li>
+</ul>
 
-<h2 id="future">🚀 Future Enhancements</h2>
-<!-- content -->
+<hr>
+
+<p align="center">
+    <strong>⭐ Star this repository if you find it useful!</strong>
+</p>
+
+<p align="center">
+    <em>"Rate limiting is not about blocking users, it’s about protecting systems."</em>
+</p>
+
+<p align="center">
+    Built with ❤️ using Spring Boot & Redis
+</p>
 
 </body>
 </html>
