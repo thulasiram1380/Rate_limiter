@@ -210,17 +210,5 @@ After 5 requests, further calls will return <code>429 Too Many Requests</code>.
 
 <hr>
 
-<p align="center">
-    <strong>⭐ Star this repository if you find it useful!</strong>
-</p>
-
-<p align="center">
-    <em>"Rate limiting is not about blocking users, it’s about protecting systems."</em>
-</p>
-
-<p align="center">
-    Built with ❤️ using Spring Boot & Redis
-</p>
-
 </body>
 </html>
